@@ -5,23 +5,83 @@ try:
     print("[DEBUG] Tkinter imported successfully.")
 except Exception as e:
     print("[ERROR] Tkinter import failed:", e)
-from tkinter import ttk, filedialog, messagebox, scrolledtext
-import cv2
-import numpy as np
-from PIL import Image, ImageTk
-import os
-from lsb_steganography import LSBSteganography
-from dct_steganography import DCTSteganography
-from performance_analyzer import PerformanceAnalyzer
-import sys
-print("Python version:", sys.version)
-print("Tkinter test:", __import__('tkinter'))
+    sys.exit(1)
+
+try:
+    from tkinter import ttk, filedialog, messagebox, scrolledtext
+    print("[DEBUG] Tkinter widgets imported successfully.")
+except Exception as e:
+    print("[ERROR] Tkinter widgets import failed:", e)
+    sys.exit(1)
+
+try:
+    import cv2
+    print("[DEBUG] OpenCV imported successfully.")
+except Exception as e:
+    print("[ERROR] OpenCV import failed:", e)
+    sys.exit(1)
+
+try:
+    import numpy as np
+    print("[DEBUG] NumPy imported successfully.")
+except Exception as e:
+    print("[ERROR] NumPy import failed:", e)
+    sys.exit(1)
+
+try:
+    from PIL import Image, ImageTk
+    print("[DEBUG] PIL imported successfully.")
+except Exception as e:
+    print("[ERROR] PIL import failed:", e)
+    sys.exit(1)
+
+try:
+    import os
+    print("[DEBUG] OS module imported successfully.")
+except Exception as e:
+    print("[ERROR] OS module import failed:", e)
+    sys.exit(1)
+
+try:
+    from lsb_steganography import LSBSteganography
+    print("[DEBUG] LSBSteganography imported successfully.")
+except Exception as e:
+    print("[ERROR] LSBSteganography import failed:", e)
+    sys.exit(1)
+
+try:
+    from dct_steganography import DCTSteganography
+    print("[DEBUG] DCTSteganography imported successfully.")
+except Exception as e:
+    print("[ERROR] DCTSteganography import failed:", e)
+    sys.exit(1)
+
+try:
+    from performance_analyzer import PerformanceAnalyzer
+    print("[DEBUG] PerformanceAnalyzer imported successfully.")
+except Exception as e:
+    print("[ERROR] PerformanceAnalyzer import failed:", e)
+    sys.exit(1)
+
+print("[DEBUG] All imports completed successfully.")
+
 class SteganographyComparisonGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("So sánh hiệu năng LSB vs DCT Steganography")
         self.root.geometry("1400x900")
         self.root.configure(bg='#f0f0f0')
+        
+        # Đảm bảo cửa sổ hiển thị ở giữa màn hình
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (1400 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (900 // 2)
+        self.root.geometry(f"1400x900+{x}+{y}")
+        
+        # Đưa cửa sổ lên phía trước
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.attributes('-topmost', False)
         
         # Khởi tạo các đối tượng steganography
         self.lsb = LSBSteganography()
@@ -36,6 +96,16 @@ class SteganographyComparisonGUI:
         self.secret_text = ""
         
         self.setup_ui()
+        
+        # Hiển thị thông báo chào mừng
+        messagebox.showinfo("Chào mừng!", 
+                           "Chương trình so sánh LSB vs DCT Steganography đã sẵn sàng!\n\n"
+                           "Hướng dẫn sử dụng:\n"
+                           "1. Nhấn 'Chọn Ảnh' để chọn ảnh cần xử lý\n"
+                           "2. Nhập tin cần giấu vào ô text\n"
+                           "3. Nhấn 'So sánh LSB vs DCT' để bắt đầu phân tích\n"
+                           "4. Xem kết quả và so sánh hiệu năng\n\n"
+                           "Cửa sổ GUI đã hiển thị thành công!")
         
     def setup_ui(self):
         """Thiết lập giao diện người dùng"""
@@ -75,8 +145,8 @@ class SteganographyComparisonGUI:
         tk.Label(img_display_frame, text="Ảnh Gốc", font=('Arial', 12, 'bold'), 
                 bg='white').pack(pady=5)
         
-        self.original_img_label = tk.Label(img_display_frame, text="Chưa có ảnh", 
-                                          bg='white', width=40, height=15)
+        self.original_img_label = tk.Label(img_display_frame, text="Chưa có ảnh",
+                                          bg='white')
         self.original_img_label.pack(pady=5)
         
         # Right panel - Controls and results
@@ -103,6 +173,12 @@ class SteganographyComparisonGUI:
         
         tk.Button(button_frame, text="Xem ảnh kết quả", command=self.show_results,
                  bg='#f39c12', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        
+        tk.Button(button_frame, text="Xem khác biệt", command=self.show_differences,
+                 bg='#2980b9', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        
+        tk.Button(button_frame, text="Biểu đồ chỉ số", command=self.show_metric_charts,
+                 bg='#8e44ad', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
         
         tk.Button(button_frame, text="Lưu kết quả", command=self.save_results,
                  bg='#27ae60', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
@@ -150,7 +226,7 @@ class SteganographyComparisonGUI:
             except Exception as e:
                 messagebox.showerror("Lỗi", f"Không thể tải ảnh: {str(e)}")
     
-    def display_image(self, image, label, max_size=(300, 300)):
+    def display_image(self, image, label, max_size=(600, 450)):
         """Hiển thị ảnh trong label"""
         if image is None:
             label.config(text="Không có ảnh")
@@ -301,14 +377,136 @@ class SteganographyComparisonGUI:
         except Exception as e:
             messagebox.showerror("Lỗi", f"Không thể lưu kết quả: {str(e)}")
 
+    def show_differences(self):
+        """Hiển thị khác biệt (khuếch đại) và bản đồ bit thấp nhất giữa ảnh gốc và ảnh stego"""
+        if self.original_image is None or self.lsb_stego_image is None or self.dct_stego_image is None:
+            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
+            return
+        
+        def amplify_diff(original_img, stego_img, scale=64.0):
+            h = min(original_img.shape[0], stego_img.shape[0])
+            w = min(original_img.shape[1], stego_img.shape[1])
+            orig = original_img[:h, :w]
+            stego = stego_img[:h, :w]
+            diff = cv2.absdiff(orig, stego)
+            amplified = cv2.convertScaleAbs(diff, alpha=scale, beta=0)
+            # Nếu vẫn quá tối (hầu như 0), chuẩn hóa để dễ nhìn
+            if np.max(amplified) < 10:
+                amplified = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX)
+            return amplified
+        
+        def lsb_change_map(original_img, stego_img):
+            h = min(original_img.shape[0], stego_img.shape[0])
+            w = min(original_img.shape[1], stego_img.shape[1])
+            orig = original_img[:h, :w]
+            stego = stego_img[:h, :w]
+            xor = cv2.bitwise_xor(orig, stego)
+            lsb = np.bitwise_and(xor, 1) * 255
+            # Nếu quá thưa, áp dụng làm nổi cạnh để dễ thấy
+            if np.max(lsb) == 0:
+                # Dùng khác biệt tuyệt đối kênh Y làm gợi ý
+                y_orig = cv2.cvtColor(orig, cv2.COLOR_BGR2YUV)[:, :, 0]
+                y_stego = cv2.cvtColor(stego, cv2.COLOR_BGR2YUV)[:, :, 0]
+                yy = cv2.absdiff(y_orig, y_stego)
+                lsb = cv2.normalize(yy, None, 0, 255, cv2.NORM_MINMAX)
+                lsb = cv2.cvtColor(lsb, cv2.COLOR_GRAY2BGR)
+            return lsb
+        
+        # Tạo cửa sổ mới
+        win = tk.Toplevel(self.root)
+        win.title("Khác biệt giữa ảnh gốc và ảnh stego (LSB/DCT)")
+        win.geometry("1200x800")
+        frame = tk.Frame(win)
+        frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Tiêu đề hàng
+        tk.Label(frame, text="LSB", font=('Arial', 12, 'bold')).grid(row=0, column=0, columnspan=3, pady=(0,8))
+        tk.Label(frame, text="DCT", font=('Arial', 12, 'bold')).grid(row=0, column=3, columnspan=3, pady=(0,8))
+        
+        # LSB cột
+        lsb_diff = amplify_diff(self.original_image, self.lsb_stego_image)
+        lsb_lsbmap = lsb_change_map(self.original_image, self.lsb_stego_image)
+        
+        l1 = tk.Label(frame, text="Ảnh gốc")
+        l1.grid(row=1, column=0)
+        img1 = tk.Label(frame)
+        img1.grid(row=2, column=0, padx=5, pady=5)
+        self.display_image(self.original_image, img1, (300, 300))
+        
+        l2 = tk.Label(frame, text="Stego")
+        l2.grid(row=1, column=1)
+        img2 = tk.Label(frame)
+        img2.grid(row=2, column=1, padx=5, pady=5)
+        self.display_image(self.lsb_stego_image, img2, (300, 300))
+        
+        l3 = tk.Label(frame, text="Khuếch đại khác biệt & bản đồ LSB")
+        l3.grid(row=1, column=2)
+        img3 = tk.Label(frame)
+        img3.grid(row=2, column=2, padx=5, pady=5)
+        # Ghép diff và lsb map cạnh nhau
+        lsb_diff_rgb = cv2.cvtColor(lsb_diff, cv2.COLOR_BGR2RGB)
+        lsb_map_rgb = cv2.cvtColor(lsb_lsbmap, cv2.COLOR_BGR2RGB)
+        concat_lsb = np.hstack([lsb_diff_rgb, lsb_map_rgb])
+        self.display_image(cv2.cvtColor(concat_lsb, cv2.COLOR_RGB2BGR), img3, (300, 300))
+        
+        # DCT cột
+        dct_diff = amplify_diff(self.original_image, self.dct_stego_image)
+        dct_lsbmap = lsb_change_map(self.original_image, self.dct_stego_image)
+        
+        l4 = tk.Label(frame, text="Ảnh gốc")
+        l4.grid(row=1, column=3)
+        img4 = tk.Label(frame)
+        img4.grid(row=2, column=3, padx=5, pady=5)
+        self.display_image(self.original_image, img4, (300, 300))
+        
+        l5 = tk.Label(frame, text="Stego")
+        l5.grid(row=1, column=4)
+        img5 = tk.Label(frame)
+        img5.grid(row=2, column=4, padx=5, pady=5)
+        self.display_image(self.dct_stego_image, img5, (300, 300))
+        
+        l6 = tk.Label(frame, text="Khuếch đại khác biệt & bản đồ LSB")
+        l6.grid(row=1, column=5)
+        img6 = tk.Label(frame)
+        img6.grid(row=2, column=5, padx=5, pady=5)
+        dct_diff_rgb = cv2.cvtColor(dct_diff, cv2.COLOR_BGR2RGB)
+        dct_map_rgb = cv2.cvtColor(dct_lsbmap, cv2.COLOR_BGR2RGB)
+        concat_dct = np.hstack([dct_diff_rgb, dct_map_rgb])
+        self.display_image(cv2.cvtColor(concat_dct, cv2.COLOR_RGB2BGR), img6, (300, 300))
+
+    def show_metric_charts(self):
+        """Hiển thị biểu đồ PSNR/SSIM, thời gian và dung lượng"""
+        if self.lsb_stego_image is None or self.dct_stego_image is None:
+            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
+            return
+        # Lấy lại kết quả để đảm bảo số liệu hiện thời
+        lsb_results, dct_results = self.analyzer.compare_methods(
+            self.original_image_path, self.secret_text
+        )
+        self.analyzer.show_metric_charts(lsb_results, dct_results)
+
 def main():
-    print("[DEBUG] Khởi tạo Tkinter window...")
-    root = tk.Tk()
-    print("[DEBUG] Tkinter window created.")
-    app = SteganographyComparisonGUI(root)
-    print("[DEBUG] SteganographyComparisonGUI initialized.")
-    root.mainloop()
-    print("[DEBUG] Tkinter mainloop exited.")
+    try:
+        print("[DEBUG] Khởi tạo Tkinter window...")
+        root = tk.Tk()
+        print("[DEBUG] Tkinter window created successfully.")
+        
+        print("[DEBUG] Đang khởi tạo SteganographyComparisonGUI...")
+        app = SteganographyComparisonGUI(root)
+        print("[DEBUG] SteganographyComparisonGUI initialized successfully.")
+        
+        print("[DEBUG] Bắt đầu mainloop...")
+        print("[DEBUG] GUI window should be visible now.")
+        root.mainloop()
+        print("[DEBUG] Tkinter mainloop exited.")
+        
+    except Exception as e:
+        print(f"[ERROR] Lỗi trong main(): {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
+    print("[DEBUG] Starting main program...")
     main()
+    print("[DEBUG] Program finished.")
