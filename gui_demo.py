@@ -1,512 +1,558 @@
+print("[INFO] Starting GUI application...")
+
 import sys
-print("[DEBUG] Python version:", sys.version)
-try:
-    import tkinter as tk
-    print("[DEBUG] Tkinter imported successfully.")
-except Exception as e:
-    print("[ERROR] Tkinter import failed:", e)
-    sys.exit(1)
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, scrolledtext
+import cv2
+import numpy as np
+from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
+import os
 
-try:
-    from tkinter import ttk, filedialog, messagebox, scrolledtext
-    print("[DEBUG] Tkinter widgets imported successfully.")
-except Exception as e:
-    print("[ERROR] Tkinter widgets import failed:", e)
-    sys.exit(1)
+print("[INFO] Importing steganography modules...")
+from lsb_steganography import LSBSteganography
+from dct_steganography import DCTSteganography
+from performance_analyzer import PerformanceAnalyzer
 
-try:
-    import cv2
-    print("[DEBUG] OpenCV imported successfully.")
-except Exception as e:
-    print("[ERROR] OpenCV import failed:", e)
-    sys.exit(1)
-
-try:
-    import numpy as np
-    print("[DEBUG] NumPy imported successfully.")
-except Exception as e:
-    print("[ERROR] NumPy import failed:", e)
-    sys.exit(1)
-
-try:
-    from PIL import Image, ImageTk
-    print("[DEBUG] PIL imported successfully.")
-except Exception as e:
-    print("[ERROR] PIL import failed:", e)
-    sys.exit(1)
-
-try:
-    import os
-    print("[DEBUG] OS module imported successfully.")
-except Exception as e:
-    print("[ERROR] OS module import failed:", e)
-    sys.exit(1)
-
-try:
-    from lsb_steganography import LSBSteganography
-    print("[DEBUG] LSBSteganography imported successfully.")
-except Exception as e:
-    print("[ERROR] LSBSteganography import failed:", e)
-    sys.exit(1)
-
-try:
-    from dct_steganography import DCTSteganography
-    print("[DEBUG] DCTSteganography imported successfully.")
-except Exception as e:
-    print("[ERROR] DCTSteganography import failed:", e)
-    sys.exit(1)
-
-try:
-    from performance_analyzer import PerformanceAnalyzer
-    print("[DEBUG] PerformanceAnalyzer imported successfully.")
-except Exception as e:
-    print("[ERROR] PerformanceAnalyzer import failed:", e)
-    sys.exit(1)
-
-print("[DEBUG] All imports completed successfully.")
-
-class SteganographyComparisonGUI:
+class SteganographyGUI:
     def __init__(self, root):
+        """Khởi tạo giao diện chính"""
+        print("[INFO] Initializing GUI...")
         self.root = root
-        self.root.title("So sánh hiệu năng LSB vs DCT Steganography")
-        self.root.geometry("1400x900")
-        self.root.configure(bg='#f0f0f0')
+        self.setup_window()
+        self.init_steganography()
+        self.create_gui()
+        print("[INFO] GUI initialized successfully")
         
-        # Đảm bảo cửa sổ hiển thị ở giữa màn hình
-        self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (1400 // 2)
-        y = (self.root.winfo_screenheight() // 2) - (900 // 2)
-        self.root.geometry(f"1400x900+{x}+{y}")
+    def setup_window(self):
+        """Thiết lập cửa sổ chính"""
+        self.root.title("So sánh phương pháp giấu tin LSB và DCT")
+        self.root.geometry("1200x800")
         
-        # Đưa cửa sổ lên phía trước
-        self.root.lift()
-        self.root.attributes('-topmost', True)
-        self.root.attributes('-topmost', False)
+        # Căn giữa cửa sổ
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width - 1200) // 2
+        y = (screen_height - 800) // 2
+        self.root.geometry(f"1200x800+{x}+{y}")
+        print("[INFO] Window setup completed")
         
-        # Khởi tạo các đối tượng steganography
+    def init_steganography(self):
+        """Khởi tạo đối tượng steganography"""
+        print("[INFO] Initializing steganography objects...")
         self.lsb = LSBSteganography()
         self.dct = DCTSteganography()
         self.analyzer = PerformanceAnalyzer()
         
-        # Biến lưu trữ
-        self.original_image_path = None
-        self.original_image = None
-        self.lsb_stego_image = None
-        self.dct_stego_image = None
-        self.secret_text = ""
+        # Biến lưu trữ cho mỗi phương pháp
+        self.lsb_data = {
+            'image_path': None,
+            'original_image': None,
+            'stego_image': None,
+            'secret_text': None,
+            'text_widget': None,
+            'original_label': None,
+            'stego_label': None
+        }
         
-        self.setup_ui()
+        self.dct_data = {
+            'image_path': None,
+            'original_image': None,
+            'stego_image': None,
+            'secret_text': None,
+            'text_widget': None,
+            'original_label': None,
+            'stego_label': None
+        }
+        print("[INFO] Steganography initialization completed")
         
-        # Hiển thị thông báo chào mừng
-        messagebox.showinfo("Chào mừng!", 
-                           "Chương trình so sánh LSB vs DCT Steganography đã sẵn sàng!\n\n"
-                           "Hướng dẫn sử dụng:\n"
-                           "1. Nhấn 'Chọn Ảnh' để chọn ảnh cần xử lý\n"
-                           "2. Nhập tin cần giấu vào ô text\n"
-                           "3. Nhấn 'So sánh LSB vs DCT' để bắt đầu phân tích\n"
-                           "4. Xem kết quả và so sánh hiệu năng\n\n"
-                           "Cửa sổ GUI đã hiển thị thành công!")
+    def create_gui(self):
+        """Tạo giao diện người dùng"""
+        print("[INFO] Creating GUI elements...")
+        # Tạo header
+        self.create_header()
         
-    def setup_ui(self):
-        """Thiết lập giao diện người dùng"""
-        # Header
-        header_frame = tk.Frame(self.root, bg='#2c3e50', height=80)
-        header_frame.pack(fill='x', padx=10, pady=5)
-        header_frame.pack_propagate(False)
+        # Tạo notebook (tabbed interface)
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=5, pady=5)
         
-        title_label = tk.Label(header_frame, text="PHÂN TÍCH SO SÁNH HIỆU NĂNG LSB vs DCT STEGANOGRAPHY", 
-                              font=('Arial', 16, 'bold'), fg='white', bg='#2c3e50')
-        title_label.pack(pady=20)
+        # Tạo các tab
+        self.create_method_tab("LSB", self.lsb_data)
+        self.create_method_tab("DCT", self.dct_data)
+        print("[INFO] GUI creation completed")
         
-        # Main content frame
-        main_frame = tk.Frame(self.root, bg='#f0f0f0')
-        main_frame.pack(fill='both', expand=True, padx=10, pady=5)
+    def create_header(self):
+        """Tạo phần header của giao diện"""
+        header = ttk.Frame(self.root)
+        header.pack(fill='x', padx=10, pady=5)
         
-        # Left panel - Image display
-        left_panel = tk.Frame(main_frame, bg='#f0f0f0')
-        left_panel.pack(side='left', fill='both', expand=True, padx=(0, 5))
+        title = ttk.Label(header, 
+                         text="SO SÁNH PHƯƠNG PHÁP GIẤU TIN LSB VÀ DCT",
+                         font=('Arial', 16, 'bold'))
+        title.pack(pady=10)
         
-        # Image selection
-        img_select_frame = tk.Frame(left_panel, bg='#f0f0f0')
-        img_select_frame.pack(fill='x', pady=(0, 10))
+    def create_method_tab(self, method_name, data_dict):
+        """Tạo tab cho một phương pháp steganography"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text=f'{method_name} Steganography')
         
-        tk.Button(img_select_frame, text="Chọn Ảnh", command=self.select_image, 
-                 bg='#3498db', fg='white', font=('Arial', 10, 'bold')).pack(side='left', padx=(0, 10))
+        # Chia layout thành 2 phần
+        left_frame = ttk.Frame(tab)
+        left_frame.pack(side='left', fill='y', padx=10, pady=5)
         
-        self.image_path_label = tk.Label(img_select_frame, text="Chưa chọn ảnh", 
-                                        bg='#f0f0f0', font=('Arial', 9))
-        self.image_path_label.pack(side='left')
+        right_frame = ttk.Frame(tab)
+        right_frame.pack(side='right', fill='both', expand=True, padx=10, pady=5)
         
-        # Image display area
-        img_display_frame = tk.Frame(left_panel, bg='white', relief='raised', bd=2)
-        img_display_frame.pack(fill='both', expand=True)
+        # Tạo các thành phần trong tab
+        self.create_input_section(left_frame, method_name, data_dict)
+        self.create_image_section(right_frame, data_dict)
         
-        # Original image
-        tk.Label(img_display_frame, text="Ảnh Gốc", font=('Arial', 12, 'bold'), 
-                bg='white').pack(pady=5)
+    def create_input_section(self, parent, method_name, data_dict):
+        """Tạo phần nhập liệu"""
+        # Frame cho text input
+        text_frame = ttk.LabelFrame(parent, text="Nội dung cần giấu")
+        text_frame.pack(fill='x', padx=5, pady=5)
         
-        self.original_img_label = tk.Label(img_display_frame, text="Chưa có ảnh",
-                                          bg='white')
-        self.original_img_label.pack(pady=5)
+        text_widget = scrolledtext.ScrolledText(text_frame, height=5, width=40)
+        text_widget.pack(padx=5, pady=5)
+        data_dict['text_widget'] = text_widget
         
-        # Right panel - Controls and results
-        right_panel = tk.Frame(main_frame, bg='#f0f0f0')
-        right_panel.pack(side='right', fill='both', padx=(5, 0))
+        # Frame cho các nút điều khiển chính
+        control_frame = ttk.Frame(parent)
+        control_frame.pack(fill='x', padx=5, pady=5)
         
-        # Text input
-        text_frame = tk.Frame(right_panel, bg='#f0f0f0')
-        text_frame.pack(fill='x', pady=(0, 10))
+        ttk.Button(control_frame, 
+                  text="Chọn ảnh", 
+                  command=lambda: self.choose_image(method_name, data_dict)
+                  ).pack(side='left', padx=5)
         
-        tk.Label(text_frame, text="Nhập tin cần giấu:", font=('Arial', 10, 'bold'), 
-                bg='#f0f0f0').pack(anchor='w')
+        ttk.Button(control_frame, 
+                  text="Giấu tin", 
+                  command=lambda: self.hide_data(method_name, data_dict)
+                  ).pack(side='left', padx=5)
+                  
+        # Frame cho các nút điều khiển phụ
+        extra_control_frame = ttk.Frame(parent)
+        extra_control_frame.pack(fill='x', padx=5, pady=5)
         
-        self.text_input = scrolledtext.ScrolledText(text_frame, height=4, width=40, 
-                                                   font=('Arial', 10))
-        self.text_input.pack(fill='x', pady=5)
+        ttk.Button(extra_control_frame,
+                  text="Lưu ảnh",
+                  command=lambda: self.save_stego_image(method_name, data_dict)
+                  ).pack(side='left', padx=5)
+                  
+        ttk.Button(extra_control_frame,
+                  text="Trích xuất tin",
+                  command=lambda: self.extract_data(method_name, data_dict)
+                  ).pack(side='left', padx=5)
+                  
+        ttk.Button(extra_control_frame,
+                  text="So sánh biểu đồ",
+                  command=lambda: self.show_comparison_charts(method_name, data_dict)
+                  ).pack(side='left', padx=5)
+                  
+        # Frame cho thông tin dung lượng
+        capacity_frame = ttk.LabelFrame(parent, text="Thông tin dung lượng")
+        capacity_frame.pack(fill='x', padx=5, pady=5)
         
-        # Buttons
-        button_frame = tk.Frame(right_panel, bg='#f0f0f0')
-        button_frame.pack(fill='x', pady=(0, 10))
+        capacity_label = ttk.Label(capacity_frame, text="Chưa có thông tin")
+        capacity_label.pack(padx=5, pady=5)
+        data_dict['capacity_label'] = capacity_label
+                  
+        # Frame cho kết quả phân tích
+        analysis_frame = ttk.LabelFrame(parent, text="Kết quả phân tích")
+        analysis_frame.pack(fill='x', padx=5, pady=5)
         
-        tk.Button(button_frame, text="So sánh LSB vs DCT", command=self.compare_methods,
-                 bg='#e74c3c', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        # Text widget để hiển thị kết quả phân tích
+        analysis_text = scrolledtext.ScrolledText(analysis_frame, height=8, width=40)
+        analysis_text.pack(padx=5, pady=5)
+        data_dict['analysis_text'] = analysis_text
         
-        tk.Button(button_frame, text="Xem ảnh kết quả", command=self.show_results,
-                 bg='#f39c12', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+    def create_image_section(self, parent, data_dict):
+        """Tạo phần hiển thị ảnh"""
+        # Frame cho ảnh gốc
+        original_frame = ttk.LabelFrame(parent, text="Ảnh gốc")
+        original_frame.pack(side='left', fill='both', expand=True, padx=5)
         
-        tk.Button(button_frame, text="Xem khác biệt", command=self.show_differences,
-                 bg='#2980b9', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        original_label = ttk.Label(original_frame)
+        original_label.pack(fill='both', expand=True, padx=5, pady=5)
+        data_dict['original_label'] = original_label
         
-        tk.Button(button_frame, text="Biểu đồ chỉ số", command=self.show_metric_charts,
-                 bg='#8e44ad', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        # Frame cho ảnh kết quả
+        stego_frame = ttk.LabelFrame(parent, text="Ảnh sau khi giấu tin")
+        stego_frame.pack(side='right', fill='both', expand=True, padx=5)
         
-        tk.Button(button_frame, text="Lưu kết quả", command=self.save_results,
-                 bg='#27ae60', fg='white', font=('Arial', 11, 'bold'), height=2).pack(fill='x', pady=2)
+        stego_label = ttk.Label(stego_frame)
+        stego_label.pack(fill='both', expand=True, padx=5, pady=5)
+        data_dict['stego_label'] = stego_label
         
-        # Results display
-        results_frame = tk.Frame(right_panel, bg='white', relief='raised', bd=2)
-        results_frame.pack(fill='both', expand=True)
-        
-        tk.Label(results_frame, text="Kết quả phân tích:", font=('Arial', 12, 'bold'), 
-                bg='white').pack(pady=5)
-        
-        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=50, 
-                                                     font=('Consolas', 9))
-        self.results_text.pack(fill='both', expand=True, padx=10, pady=5)
-        
-        # Status bar
-        status_frame = tk.Frame(self.root, bg='#34495e', height=30)
-        status_frame.pack(fill='x', side='bottom')
-        status_frame.pack_propagate(False)
-        
-        self.status_label = tk.Label(status_frame, text="Sẵn sàng", fg='white', bg='#34495e')
-        self.status_label.pack(side='left', padx=10, pady=5)
-        
-    def select_image(self):
-        """Chọn ảnh để xử lý"""
+    def choose_image(self, method_name, data_dict):
+        """Xử lý chọn ảnh"""
+        print(f"[INFO] Choosing image for {method_name}...")
         file_path = filedialog.askopenfilename(
-            title="Chọn ảnh",
+            title=f"Chọn ảnh cho {method_name}",
             filetypes=[("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff")]
         )
         
         if file_path:
             try:
-                self.original_image_path = file_path
-                self.original_image = cv2.imread(file_path)
+                # Đọc và lưu ảnh
+                image = cv2.imread(file_path)
+                if image is None:
+                    raise ValueError("Không thể đọc ảnh")
+                
+                data_dict['image_path'] = file_path
+                data_dict['original_image'] = image.copy()
                 
                 # Hiển thị ảnh
-                self.display_image(self.original_image, self.original_img_label)
-                
-                # Cập nhật label
-                filename = os.path.basename(file_path)
-                self.image_path_label.config(text=f"Đã chọn: {filename}")
-                
-                self.status_label.config(text=f"Đã tải ảnh: {filename}")
+                self.display_image(image, data_dict['original_label'])
+                print(f"[INFO] Image loaded successfully for {method_name}")
                 
             except Exception as e:
-                messagebox.showerror("Lỗi", f"Không thể tải ảnh: {str(e)}")
-    
-    def display_image(self, image, label, max_size=(600, 450)):
-        """Hiển thị ảnh trong label"""
-        if image is None:
-            label.config(text="Không có ảnh")
-            return
-        
-        # Resize ảnh để vừa với label
-        height, width = image.shape[:2]
-        if height > max_size[0] or width > max_size[1]:
-            scale = min(max_size[0]/height, max_size[1]/width)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            image = cv2.resize(image, (new_width, new_height))
-        
-        # Chuyển đổi BGR sang RGB
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        # Chuyển đổi sang PIL Image
-        pil_image = Image.fromarray(image_rgb)
-        photo = ImageTk.PhotoImage(pil_image)
-        
-        # Cập nhật label
-        label.config(image=photo, text="")
-        label.image = photo  # Giữ reference
-    
-    def compare_methods(self):
-        """So sánh hiệu năng LSB vs DCT"""
-        if not self.original_image_path:
+                print(f"[ERROR] Failed to load image: {str(e)}")
+                messagebox.showerror("Lỗi", f"Không thể mở ảnh: {str(e)}")
+                
+    def hide_data(self, method_name, data_dict):
+        """Xử lý giấu tin"""
+        print(f"[INFO] Starting data hiding process for {method_name}...")
+        if not data_dict['image_path']:
             messagebox.showwarning("Cảnh báo", "Vui lòng chọn ảnh trước!")
             return
-        
-        # Lấy text cần giấu
-        self.secret_text = self.text_input.get("1.0", tk.END).strip()
-        if not self.secret_text:
-            messagebox.showwarning("Cảnh báo", "Vui lòng nhập tin cần giấu!")
-            return
-        
-        try:
-            self.status_label.config(text="Đang phân tích...")
-            self.root.update()
             
-            # Thực hiện so sánh
-            lsb_results, dct_results = self.analyzer.compare_methods(
-                self.original_image_path, self.secret_text
+        secret_text = data_dict['text_widget'].get("1.0", "end-1c").strip()
+        if not secret_text:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập nội dung cần giấu!")
+            return
+            
+        try:
+            # Thực hiện giấu tin
+            steganography = self.lsb if method_name == "LSB" else self.dct
+            print(f"[INFO] Embedding data using {method_name}...")
+            
+            # Phân tích hiệu năng
+            stego_image, metrics = self.analyze_performance(
+                method_name, 
+                steganography, 
+                data_dict['image_path'], 
+                secret_text
             )
             
-            # Lưu kết quả
-            self.lsb_stego_image = lsb_results['stego_image'] if lsb_results else None
-            self.dct_stego_image = dct_results['stego_image'] if dct_results else None
+            # Lưu và hiển thị kết quả
+            data_dict['stego_image'] = stego_image
+            self.display_image(stego_image, data_dict['stego_label'])
             
-            # Tạo báo cáo
-            report = self.analyzer.generate_comparison_report(lsb_results, dct_results)
+            # Hiển thị kết quả phân tích
+            self.display_analysis_results(data_dict['analysis_text'], metrics)
             
-            # Hiển thị kết quả
-            self.results_text.delete("1.0", tk.END)
-            self.results_text.insert("1.0", report)
-            
-            self.status_label.config(text="Phân tích hoàn tất!")
+            # Thông báo thành công
+            print(f"[INFO] Data hiding successful for {method_name}")
+            messagebox.showinfo("Thành công", 
+                              f"Đã giấu tin thành công bằng phương pháp {method_name}!")
             
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Lỗi trong quá trình phân tích: {str(e)}")
-            self.status_label.config(text="Có lỗi xảy ra")
-    
-    def show_results(self):
-        """Hiển thị ảnh kết quả"""
-        if self.lsb_stego_image is None or self.dct_stego_image is None:
-            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
-            return
+            print(f"[ERROR] Data hiding failed: {str(e)}")
+            messagebox.showerror("Lỗi", f"Có lỗi xảy ra khi giấu tin: {str(e)}")
+
+    def analyze_performance(self, method_name, steganography, image_path, secret_text):
+        """Phân tích hiệu năng của phương pháp giấu tin"""
+        import time
+        start_time = time.time()
         
-        # Tạo cửa sổ mới để hiển thị kết quả
-        results_window = tk.Toplevel(self.root)
-        results_window.title("Kết quả so sánh LSB vs DCT")
-        results_window.geometry("1000x600")
+        # Thực hiện giấu tin và ghi nhận thời gian
+        stego_image = steganography.embed(image_path, secret_text)
+        processing_time = time.time() - start_time
         
-        # Tạo frame chính
-        main_frame = tk.Frame(results_window)
-        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
-        
-        # Ảnh gốc
-        tk.Label(main_frame, text="Ảnh Gốc", font=('Arial', 12, 'bold')).grid(row=0, column=0, pady=5)
-        original_label = tk.Label(main_frame)
-        original_label.grid(row=1, column=0, padx=5, pady=5)
-        self.display_image(self.original_image, original_label, (200, 200))
-        
-        # Ảnh LSB
-        tk.Label(main_frame, text="LSB Stego", font=('Arial', 12, 'bold')).grid(row=0, column=1, pady=5)
-        lsb_label = tk.Label(main_frame)
-        lsb_label.grid(row=1, column=1, padx=5, pady=5)
-        self.display_image(self.lsb_stego_image, lsb_label, (200, 200))
-        
-        # Ảnh DCT
-        tk.Label(main_frame, text="DCT Stego", font=('Arial', 12, 'bold')).grid(row=0, column=2, pady=5)
-        dct_label = tk.Label(main_frame)
-        dct_label.grid(row=1, column=2, padx=5, pady=5)
-        self.display_image(self.dct_stego_image, dct_label, (200, 200))
-        
-        # Thông tin chi tiết
-        info_frame = tk.Frame(main_frame)
-        info_frame.grid(row=2, column=0, columnspan=3, pady=20)
-        
-        # Lấy thông tin từ analyzer
-        lsb_results, dct_results = self.analyzer.compare_methods(
-            self.original_image_path, self.secret_text
+        # Tính toán PSNR và SSIM
+        metrics = self.analyzer.calculate_metrics(
+            cv2.imread(image_path),
+            stego_image[0] if isinstance(stego_image, tuple) else stego_image
         )
         
-        if lsb_results and dct_results:
-            info_text = f"""
-            THÔNG TIN CHI TIẾT:
-            
-            LSB:
-            - Thời gian nhúng: {lsb_results['embed_time']:.4f}s
-            - Thời gian trích xuất: {lsb_results['extract_time']:.4f}s
-            - PSNR: {lsb_results['psnr']:.2f} dB
-            - SSIM: {lsb_results['ssim']:.4f}
-            
-            DCT:
-            - Thời gian nhúng: {dct_results['embed_time']:.4f}s
-            - Thời gian trích xuất: {dct_results['extract_time']:.4f}s
-            - PSNR: {dct_results['psnr']:.2f} dB
-            - SSIM: {dct_results['ssim']:.4f}
-            """
-            
-            info_label = tk.Label(info_frame, text=info_text, font=('Consolas', 10), 
-                                 justify='left', bg='#f8f9fa', relief='raised', bd=2)
-            info_label.pack(pady=10)
-    
-    def save_results(self):
-        """Lưu kết quả"""
-        if self.lsb_stego_image is None or self.dct_stego_image is None:
-            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
+        # Thêm thời gian xử lý vào metrics
+        metrics['processing_time'] = processing_time
+        metrics['method'] = method_name
+        
+        return stego_image, metrics
+        
+    def display_analysis_results(self, text_widget, metrics):
+        """Hiển thị kết quả phân tích"""
+        result_text = f"""Kết quả phân tích {metrics['method']}:
+
+1. Chất lượng ảnh:
+   - PSNR: {metrics['psnr']:.2f} dB
+   - SSIM: {metrics['ssim']:.4f}
+   
+2. Hiệu năng:
+   - Thời gian xử lý: {metrics['processing_time']*1000:.2f} ms
+
+3. Đánh giá:
+   - Chất lượng: {"Tốt" if metrics['psnr'] > 40 else "Trung bình" if metrics['psnr'] > 30 else "Kém"}
+   - Độ bền: {"Cao" if metrics['ssim'] > 0.95 else "Trung bình" if metrics['ssim'] > 0.9 else "Thấp"}
+   - Tốc độ: {"Nhanh" if metrics['processing_time'] < 0.1 else "Trung bình" if metrics['processing_time'] < 0.5 else "Chậm"}
+"""
+        text_widget.delete("1.0", tk.END)
+        text_widget.insert("1.0", result_text)
+
+    def save_stego_image(self, method_name, data_dict):
+        """Lưu ảnh đã giấu tin"""
+        if data_dict['stego_image'] is None:
+            messagebox.showwarning("Cảnh báo", "Chưa có ảnh để lưu!")
             return
         
+        # Mở dialog chọn vị trí lưu file
+        dialog_title = f"Lưu ảnh {method_name}"
+        filetypes = [("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")]
+        file_path = filedialog.asksaveasfilename(initialfile="stego_image.png",
+                                                title=dialog_title,
+                                                defaultextension=".png",
+                                                filetypes=filetypes)
+        
+        if not file_path:
+            return
+            
         try:
-            # Chọn thư mục lưu
-            save_dir = filedialog.askdirectory(title="Chọn thư mục lưu kết quả")
-            if save_dir:
-                # Lưu ảnh
-                cv2.imwrite(os.path.join(save_dir, "lsb_stego.png"), self.lsb_stego_image)
-                cv2.imwrite(os.path.join(save_dir, "dct_stego.png"), self.dct_stego_image)
+            # Xử lý trường hợp ảnh được trả về dạng tuple
+            stego_image = data_dict['stego_image']
+            if isinstance(stego_image, tuple):
+                stego_image = stego_image[0]
                 
-                # Lưu báo cáo
-                report_path = os.path.join(save_dir, "comparison_report.txt")
-                with open(report_path, 'w', encoding='utf-8') as f:
-                    f.write(self.results_text.get("1.0", tk.END))
-                
-                messagebox.showinfo("Thành công", f"Đã lưu kết quả vào:\n{save_dir}")
-                self.status_label.config(text="Đã lưu kết quả")
-                
+            # Lưu ảnh
+            cv2.imwrite(file_path, stego_image)
+            messagebox.showinfo("Thành công", f"Đã lưu ảnh tại:\n{file_path}")
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Không thể lưu kết quả: {str(e)}")
-
-    def show_differences(self):
-        """Hiển thị khác biệt (khuếch đại) và bản đồ bit thấp nhất giữa ảnh gốc và ảnh stego"""
-        if self.original_image is None or self.lsb_stego_image is None or self.dct_stego_image is None:
-            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
+            messagebox.showerror("Lỗi", f"Không thể lưu ảnh: {str(e)}")
+                
+    def copy_to_clipboard(self, dialog, text):
+        """Copy text vào clipboard"""
+        dialog.clipboard_clear()
+        dialog.clipboard_append(text)
+        messagebox.showinfo("Thông báo", "Đã copy vào clipboard!")
+        
+    def extract_data(self, method_name, data_dict):
+        """Trích xuất tin đã giấu"""
+        if data_dict['stego_image'] is None:
+            messagebox.showwarning("Cảnh báo", "Chưa có ảnh để trích xuất!")
             return
-        
-        def amplify_diff(original_img, stego_img, scale=64.0):
-            h = min(original_img.shape[0], stego_img.shape[0])
-            w = min(original_img.shape[1], stego_img.shape[1])
-            orig = original_img[:h, :w]
-            stego = stego_img[:h, :w]
-            diff = cv2.absdiff(orig, stego)
-            amplified = cv2.convertScaleAbs(diff, alpha=scale, beta=0)
-            # Nếu vẫn quá tối (hầu như 0), chuẩn hóa để dễ nhìn
-            if np.max(amplified) < 10:
-                amplified = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX)
-            return amplified
-        
-        def lsb_change_map(original_img, stego_img):
-            h = min(original_img.shape[0], stego_img.shape[0])
-            w = min(original_img.shape[1], stego_img.shape[1])
-            orig = original_img[:h, :w]
-            stego = stego_img[:h, :w]
-            xor = cv2.bitwise_xor(orig, stego)
-            lsb = np.bitwise_and(xor, 1) * 255
-            # Nếu quá thưa, áp dụng làm nổi cạnh để dễ thấy
-            if np.max(lsb) == 0:
-                # Dùng khác biệt tuyệt đối kênh Y làm gợi ý
-                y_orig = cv2.cvtColor(orig, cv2.COLOR_BGR2YUV)[:, :, 0]
-                y_stego = cv2.cvtColor(stego, cv2.COLOR_BGR2YUV)[:, :, 0]
-                yy = cv2.absdiff(y_orig, y_stego)
-                lsb = cv2.normalize(yy, None, 0, 255, cv2.NORM_MINMAX)
-                lsb = cv2.cvtColor(lsb, cv2.COLOR_GRAY2BGR)
-            return lsb
-        
-        # Tạo cửa sổ mới
-        win = tk.Toplevel(self.root)
-        win.title("Khác biệt giữa ảnh gốc và ảnh stego (LSB/DCT)")
-        win.geometry("1200x800")
-        frame = tk.Frame(win)
-        frame.pack(fill='both', expand=True, padx=10, pady=10)
-        
-        # Tiêu đề hàng
-        tk.Label(frame, text="LSB", font=('Arial', 12, 'bold')).grid(row=0, column=0, columnspan=3, pady=(0,8))
-        tk.Label(frame, text="DCT", font=('Arial', 12, 'bold')).grid(row=0, column=3, columnspan=3, pady=(0,8))
-        
-        # LSB cột
-        lsb_diff = amplify_diff(self.original_image, self.lsb_stego_image)
-        lsb_lsbmap = lsb_change_map(self.original_image, self.lsb_stego_image)
-        
-        l1 = tk.Label(frame, text="Ảnh gốc")
-        l1.grid(row=1, column=0)
-        img1 = tk.Label(frame)
-        img1.grid(row=2, column=0, padx=5, pady=5)
-        self.display_image(self.original_image, img1, (300, 300))
-        
-        l2 = tk.Label(frame, text="Stego")
-        l2.grid(row=1, column=1)
-        img2 = tk.Label(frame)
-        img2.grid(row=2, column=1, padx=5, pady=5)
-        self.display_image(self.lsb_stego_image, img2, (300, 300))
-        
-        l3 = tk.Label(frame, text="Khuếch đại khác biệt & bản đồ LSB")
-        l3.grid(row=1, column=2)
-        img3 = tk.Label(frame)
-        img3.grid(row=2, column=2, padx=5, pady=5)
-        # Ghép diff và lsb map cạnh nhau
-        lsb_diff_rgb = cv2.cvtColor(lsb_diff, cv2.COLOR_BGR2RGB)
-        lsb_map_rgb = cv2.cvtColor(lsb_lsbmap, cv2.COLOR_BGR2RGB)
-        concat_lsb = np.hstack([lsb_diff_rgb, lsb_map_rgb])
-        self.display_image(cv2.cvtColor(concat_lsb, cv2.COLOR_RGB2BGR), img3, (300, 300))
-        
-        # DCT cột
-        dct_diff = amplify_diff(self.original_image, self.dct_stego_image)
-        dct_lsbmap = lsb_change_map(self.original_image, self.dct_stego_image)
-        
-        l4 = tk.Label(frame, text="Ảnh gốc")
-        l4.grid(row=1, column=3)
-        img4 = tk.Label(frame)
-        img4.grid(row=2, column=3, padx=5, pady=5)
-        self.display_image(self.original_image, img4, (300, 300))
-        
-        l5 = tk.Label(frame, text="Stego")
-        l5.grid(row=1, column=4)
-        img5 = tk.Label(frame)
-        img5.grid(row=2, column=4, padx=5, pady=5)
-        self.display_image(self.dct_stego_image, img5, (300, 300))
-        
-        l6 = tk.Label(frame, text="Khuếch đại khác biệt & bản đồ LSB")
-        l6.grid(row=1, column=5)
-        img6 = tk.Label(frame)
-        img6.grid(row=2, column=5, padx=5, pady=5)
-        dct_diff_rgb = cv2.cvtColor(dct_diff, cv2.COLOR_BGR2RGB)
-        dct_map_rgb = cv2.cvtColor(dct_lsbmap, cv2.COLOR_BGR2RGB)
-        concat_dct = np.hstack([dct_diff_rgb, dct_map_rgb])
-        self.display_image(cv2.cvtColor(concat_dct, cv2.COLOR_RGB2BGR), img6, (300, 300))
-
-    def show_metric_charts(self):
-        """Hiển thị biểu đồ PSNR/SSIM, thời gian và dung lượng"""
-        if self.lsb_stego_image is None or self.dct_stego_image is None:
-            messagebox.showwarning("Cảnh báo", "Vui lòng thực hiện phân tích trước!")
+            
+        try:
+            # Xử lý trường hợp stego_image là tuple
+            stego_image = data_dict['stego_image']
+            if isinstance(stego_image, tuple):
+                stego_image = stego_image[0]
+                
+            # Trích xuất tin
+            steganography = self.lsb if method_name == "LSB" else self.dct
+            extracted_text = steganography.extract(stego_image)
+            
+            if not extracted_text:
+                messagebox.showwarning("Cảnh báo", "Không tìm thấy tin giấu trong ảnh!")
+                return
+            
+            # Tạo dialog hiển thị tin đã trích xuất
+            dialog = tk.Toplevel(self.root)
+            dialog.title(f"Tin đã trích xuất - {method_name}")
+            dialog.geometry("400x300")
+            
+            # Tạo text area cho việc hiển thị và cho phép copy
+            text_area = scrolledtext.ScrolledText(dialog, wrap=tk.WORD, width=45, height=15)
+            text_area.pack(padx=10, pady=10, expand=True, fill='both')
+            text_area.insert('1.0', extracted_text)
+            text_area.configure(state='disabled')  # Chỉ cho phép đọc
+            
+            # Thêm các nút chức năng
+            button_frame = ttk.Frame(dialog)
+            button_frame.pack(pady=5)
+            
+            copy_button = ttk.Button(button_frame, text="Copy", 
+                                   command=lambda: self.copy_to_clipboard(dialog, extracted_text))
+            copy_button.pack(side='left', padx=5)
+            
+            close_button = ttk.Button(button_frame, text="Đóng", 
+                                    command=dialog.destroy)
+            close_button.pack(side='left', padx=5)
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể trích xuất tin: {str(e)}")
+            
+    def show_comparison_charts(self, method_name, data_dict):
+        """Hiển thị biểu đồ so sánh"""
+        if data_dict['original_image'] is None or data_dict['stego_image'] is None:
+            messagebox.showwarning("Cảnh báo", "Chưa có đủ dữ liệu để so sánh!")
             return
-        # Lấy lại kết quả để đảm bảo số liệu hiện thời
-        lsb_results, dct_results = self.analyzer.compare_methods(
-            self.original_image_path, self.secret_text
-        )
-        self.analyzer.show_metric_charts(lsb_results, dct_results)
+            
+        try:
+            # Xử lý trường hợp stego_image là tuple
+            original_image = data_dict['original_image']
+            stego_image = data_dict['stego_image']
+            if isinstance(stego_image, tuple):
+                stego_image = stego_image[0]
+            
+            # Tính toán các thông số
+            mse = np.mean((original_image - stego_image) ** 2)
+            metrics = self.analyzer.calculate_metrics(original_image, stego_image)
+            psnr = metrics['psnr']
+            ssim = metrics['ssim']
+            max_diff = np.max(cv2.absdiff(original_image, stego_image))
+            
+            # Tạo cửa sổ mới cho biểu đồ
+            plt.figure(figsize=(15, 10))
+            
+            # Tiêu đề chính với thông số
+            plt.suptitle(f'Phân tích ảnh - Phương pháp {method_name}\n' + 
+                        f'PSNR: {psnr:.2f}dB | SSIM: {ssim:.4f} | MSE: {mse:.4f}', 
+                        fontsize=12, y=0.98)
+            
+            # Histogram ảnh gốc
+            plt.subplot(2, 2, 1)
+            for i, color, name in zip(range(3), ['b', 'g', 'r'], ['Blue', 'Green', 'Red']):
+                channel_hist = cv2.calcHist([original_image], [i], None, [256], [0, 256])
+                plt.plot(channel_hist, color=color, alpha=0.7, label=name)
+            plt.title('Histogram ảnh gốc')
+            plt.xlabel('Giá trị pixel')
+            plt.ylabel('Số lượng')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+
+            # Histogram ảnh đã giấu tin
+            plt.subplot(2, 2, 2)
+            for i, color, name in zip(range(3), ['b', 'g', 'r'], ['Blue', 'Green', 'Red']):
+                channel_hist = cv2.calcHist([stego_image], [i], None, [256], [0, 256])
+                plt.plot(channel_hist, color=color, alpha=0.7, label=name)
+            plt.title('Histogram ảnh đã giấu tin')
+            plt.xlabel('Giá trị pixel')
+            plt.ylabel('Số lượng')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+
+            # Độ khác biệt giữa hai ảnh
+            plt.subplot(2, 2, 3)
+            difference = cv2.absdiff(original_image, stego_image)
+            plt.imshow(difference, cmap='hot')
+            plt.colorbar(label='Độ khác biệt')
+            plt.title('Bản đồ độ khác biệt')
+            
+            # Thông số chi tiết
+            plt.subplot(2, 2, 4)
+            plt.axis('off')
+            info_text = (
+                "THÔNG SỐ CHI TIẾT\n\n"
+                f"1. Chất lượng hình ảnh:\n"
+                f"   • PSNR: {psnr:.2f} dB\n"
+                f"   • SSIM: {ssim:.4f}\n"
+                f"   • MSE: {mse:.4f}\n\n"
+                f"2. Phân tích nhiễu:\n"
+                f"   • Độ khác biệt tối đa: {max_diff}\n"
+                f"   • Trung bình nhiễu: {np.mean(difference):.4f}\n"
+                f"   • Độ lệch chuẩn: {np.std(difference):.4f}\n\n"
+                f"3. Đánh giá:\n"
+                f"   • Chất lượng: {'Tốt' if psnr > 40 else 'Trung bình' if psnr > 30 else 'Kém'}\n"
+                f"   • Độ bền: {'Cao' if ssim > 0.95 else 'Trung bình' if ssim > 0.9 else 'Thấp'}\n"
+                f"   • % Pixel thay đổi: {(np.count_nonzero(difference) / difference.size * 100):.2f}%"
+            )
+            plt.text(0.05, 0.95, info_text, fontsize=10, va='top', 
+                    fontfamily='monospace', linespacing=1.5)
+
+            plt.tight_layout()
+            plt.show()
+            # Histogram ảnh gốc
+            plt.subplot(221)
+            plt.title("Histogram ảnh gốc")
+            for i, color in enumerate(['b', 'g', 'r']):
+                hist = cv2.calcHist([data_dict['original_image']], [i], None, [256], [0, 256])
+                plt.plot(hist, color=color)
+            
+            # Histogram ảnh đã giấu tin
+            plt.subplot(222)
+            plt.title("Histogram ảnh đã giấu tin")
+            stego_img = data_dict['stego_image']
+            if isinstance(stego_img, tuple):
+                stego_img = stego_img[0]
+            for i, color in enumerate(['b', 'g', 'r']):
+                hist = cv2.calcHist([stego_img], [i], None, [256], [0, 256])
+                plt.plot(hist, color=color)
+            
+            # Độ khác biệt giữa hai ảnh
+            plt.subplot(223)
+            plt.title("Độ khác biệt")
+            diff = cv2.absdiff(data_dict['original_image'], stego_img)
+            plt.imshow(cv2.cvtColor(diff, cv2.COLOR_BGR2RGB))
+            
+            # Hiển thị
+            plt.tight_layout()
+            plt.show()
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể tạo biểu đồ: {str(e)}")
+            
+    def update_capacity_info(self, method_name, data_dict):
+        """Cập nhật thông tin dung lượng"""
+        if data_dict['image_path'] is None:
+            return
+            
+        try:
+            lsb_capacity, dct_capacity = self.analyzer.estimate_capacity_bits(data_dict['image_path'])
+            capacity = lsb_capacity if method_name == "LSB" else dct_capacity
+            
+            # Chuyển đổi sang đơn vị dễ đọc
+            if capacity >= 8000:
+                capacity_text = f"{capacity/8/1024:.2f} KB"
+            else:
+                capacity_text = f"{capacity/8:.0f} bytes"
+                
+            data_dict['capacity_label'].configure(
+                text=f"Dung lượng tối đa: {capacity_text}\n"
+                     f"(tương đương {capacity:,} bits)"
+            )
+        except Exception as e:
+            print(f"[ERROR] Failed to update capacity info: {str(e)}")
+            
+    def display_image(self, image, label, size=(300, 300)):
+        """Hiển thị ảnh lên label widget"""
+        if image is None:
+            print("[WARNING] Attempted to display None image")
+            return
+            
+        try:
+            # Nếu image là tuple (từ kết quả embed), lấy phần tử đầu tiên
+            if isinstance(image, tuple):
+                print("[INFO] Converting tuple to image array")
+                image = image[0]
+
+            # Chuyển đổi array sang uint8 nếu cần
+            if image.dtype != np.uint8:
+                image = np.clip(image, 0, 255).astype(np.uint8)
+                
+            # Chuyển đổi màu từ BGR sang RGB
+            if len(image.shape) == 3:  # Ảnh màu
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            else:  # Ảnh grayscale
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+            
+            # Resize ảnh
+            image_resized = cv2.resize(image_rgb, size)
+            
+            # Chuyển đổi sang định dạng PhotoImage
+            image_pil = Image.fromarray(image_resized)
+            image_tk = ImageTk.PhotoImage(image_pil)
+            
+            # Hiển thị ảnh
+            label.configure(image=image_tk)
+            label.image = image_tk  # Giữ tham chiếu
+            print("[INFO] Image displayed successfully")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to display image: {str(e)}")
+            messagebox.showerror("Lỗi", f"Không thể hiển thị ảnh: {str(e)}")
 
 def main():
     try:
-        print("[DEBUG] Khởi tạo Tkinter window...")
+        print("[INFO] Starting main program...")
         root = tk.Tk()
-        print("[DEBUG] Tkinter window created successfully.")
-        
-        print("[DEBUG] Đang khởi tạo SteganographyComparisonGUI...")
-        app = SteganographyComparisonGUI(root)
-        print("[DEBUG] SteganographyComparisonGUI initialized successfully.")
-        
-        print("[DEBUG] Bắt đầu mainloop...")
-        print("[DEBUG] GUI window should be visible now.")
+        app = SteganographyGUI(root)
+        print("[INFO] Entering main loop")
         root.mainloop()
-        print("[DEBUG] Tkinter mainloop exited.")
-        
     except Exception as e:
-        print(f"[ERROR] Lỗi trong main(): {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"[ERROR] Application error: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    print("[DEBUG] Starting main program...")
     main()
-    print("[DEBUG] Program finished.")

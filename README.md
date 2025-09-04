@@ -22,9 +22,14 @@ Dự án này cung cấp một công cụ hoàn chỉnh để so sánh hiệu n�
 - Khả năng chống nhiễu tốt hơn
 - Xử lý theo block 8x8 pixel
 
-### 3. **Phân tích hiệu năng**
+### 3. **Phân tích hiệu năng toàn diện**
 - **PSNR (Peak Signal-to-Noise Ratio)**: Đo lường chất lượng ảnh
 - **SSIM (Structural Similarity Index)**: Đánh giá độ tương đồng cấu trúc
+- **SME (Squared Mean Error)**: Chỉ số lỗi bình phương trung bình
+- **MSE/MAE/RMSE**: Các chỉ số lỗi chi tiết
+- **NCC (Normalized Cross Correlation)**: Tương quan chuẩn hóa
+- **Robustness**: Độ bền vững chống nhiễu và nén
+- **Capacity**: Dung lượng giấu tin và hiệu quả sử dụng
 - **Thời gian xử lý**: So sánh tốc độ nhúng và trích xuất
 - **Độ chính xác**: Kiểm tra khả năng khôi phục tin mật
 
@@ -40,9 +45,10 @@ Dự án này cung cấp một công cụ hoàn chỉnh để so sánh hiệu n�
 ComparisonLSB_DCT/
 ├── lsb_steganography.py      # Triển khai LSB steganography
 ├── dct_steganography.py      # Triển khai DCT steganography
-├── performance_analyzer.py    # Phân tích và so sánh hiệu năng
-├── gui_demo.py               # Giao diện người dùng
-├── demo_script.py            # Script demo tự động
+├── performance_analyzer.py    # Phân tích và so sánh hiệu năng nâng cao
+├── gui_demo.py               # Giao diện người dùng với tab chi tiết
+├── demo_script.py            # Script demo đơn giản
+├── comprehensive_benchmark.py # Benchmark toàn diện với nhiều test case
 ├── requirements.txt           # Thư viện cần thiết
 └── README.md                 # Hướng dẫn sử dụng
 ```
@@ -59,11 +65,12 @@ pip install -r requirements.txt
 ```
 
 ### Thư viện chính
-- `opencv-python`: Xử lý ảnh
-- `numpy`: Tính toán số học
-- `Pillow`: Xử lý ảnh nâng cao
-- `matplotlib`: Vẽ biểu đồ
-- `scikit-image`: Xử lý ảnh khoa học
+- `opencv-python>=4.5.0`: Xử lý ảnh
+- `numpy>=1.21.0`: Tính toán số học
+- `Pillow>=8.0.0`: Xử lý ảnh nâng cao
+- `matplotlib>=3.3.0`: Vẽ biểu đồ
+- `scikit-image>=0.18.0`: Xử lý ảnh khoa học và tính toán SSIM/PSNR
+- `scipy>=1.7.0`: Tính toán khoa học
 
 ## 🎮 Cách sử dụng
 
@@ -92,7 +99,19 @@ Script này sẽ:
 - Tạo biểu đồ so sánh
 - Lưu tất cả kết quả
 
-### 3. **Sử dụng trực tiếp các class**
+### 3. **Chạy Comprehensive Benchmark**
+```bash
+python comprehensive_benchmark.py
+```
+
+Script này sẽ:
+- Tạo nhiều loại ảnh test khác nhau
+- Test với nhiều loại tin nhắn
+- Thực hiện phân tích toàn diện
+- Tạo báo cáo benchmark chi tiết
+- Tạo biểu đồ so sánh tổng hợp
+
+### 4. **Sử dụng trực tiếp các class**
 ```python
 from lsb_steganography import LSBSteganography
 from dct_steganography import DCTSteganography
